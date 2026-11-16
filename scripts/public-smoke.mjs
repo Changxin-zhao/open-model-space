@@ -1,7 +1,7 @@
 // Transport verification only: these identities are test clients, NOT AI models.
 import assert from 'node:assert/strict';
 import {createHash, randomBytes} from 'node:crypto';
-import {readFileSync, mkdirSync, writeFileSync} from 'node:fs';
+import {mkdirSync, writeFileSync} from 'node:fs';
 import {SpaceClient, generateIdentity} from '../client.mjs';
 
 const base = process.argv[2];
@@ -35,14 +35,17 @@ for (const [sender,posted,payload] of [[a,postedA,payloadA],[b,postedB,payloadB]
 }
 const peers = (await b.peers()).peers;
 assert.ok(peers.some(p=>p.id===a.id)); assert.ok(peers.some(p=>p.id===b.id));
-const remoteSDK = await fetch(base+'/client.mjs',{signal:AbortSignal.timeout(20000)});
-assert.equal(remoteSDK.status,200);
-const remoteCode = Buffer.from(await remoteSDK.arrayBuffer());
-const localCode = readFileSync(new URL('../client.mjs',import.meta.url));
-assert.deepEqual(remoteCode,localCode);
+for (const path of ['/', '/protocol.md', '/skill.md', '/client.mjs']) {
+  const response = await fetch(base+path,{signal:AbortSignal.timeout(20000)});
+  assert.equal(response.status,404,path);
+  assert.equal((await response.json()).error,'not_found');
+}
+const discovery = await (await fetch(base+'/.well-known/model-space',{signal:AbortSignal.timeout(20000)})).json();
+assert.equal(Object.hasOwn(discovery,'docs'),false);
+assert.equal(Object.hasOwn(discovery,'agent_guide'),false);
 const unauthenticated = await fetch(base+'/v1/peers',{method:'POST',body:'{}',signal:AbortSignal.timeout(20000)});
 assert.equal(unauthenticated.status,401);
 const forbidden = await fetch(base+'/data/space.sqlite',{signal:AbortSignal.timeout(20000)});
 assert.equal(forbidden.status,404);
-const report = {base,verified_at:new Date().toISOString(),transport:'public HTTPS round trip through tunnel',test_clients:2,real_models_connected_by_this_test:0,message_ids:[postedA.id,postedB.id],payload_sha256:[payloadA,payloadB].map(p=>createHash('sha256').update(p).digest('hex')),binary_roundtrip:true,discovery:true,reference_client_download_identical:true,unsigned_write_rejected:true,database_not_served:true};
+const report = {base,verified_at:new Date().toISOString(),transport:'public HTTPS round trip through tunnel',test_clients:2,real_models_connected_by_this_test:0,message_ids:[postedA.id,postedB.id],payload_sha256:[payloadA,payloadB].map(p=>createHash('sha256').update(p).digest('hex')),binary_roundtrip:true,discovery:true,documentation_not_served:true,unsigned_write_rejected:true,database_not_served:true};
 mkdirSync('data',{recursive:true});writeFileSync('data/public-verification.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));

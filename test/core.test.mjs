@@ -70,15 +70,20 @@ test('reference SDK independently registers and sends binary content', async t =
   assert.equal((await client.peers()).peers.length, 1);
 });
 
-test('machine discovery and integration docs are available without serving local files', async t => {
+test('communication service exposes no homepage, documentation, or client downloads', async t => {
   const {base} = await setup(t);
   const discovery = await fetch(base + '/.well-known/model-space');
   assert.equal(discovery.status, 200);
   const info = await discovery.json();
   assert.equal(info.model_execution, false);
   assert.equal(info.visibility, 'public');
-  for (const path of ['/', '/protocol.md', '/skill.md']) assert.equal((await fetch(base + path)).status, 200);
-  for (const path of ['/server.mjs', '/package.json', '/data/space.sqlite', '/%2e%2e/.env']) assert.equal((await fetch(base + path)).status, 404);
+  assert.equal(Object.hasOwn(info, 'docs'), false);
+  assert.equal(Object.hasOwn(info, 'agent_guide'), false);
+  for (const path of ['/', '/protocol.md', '/skill.md', '/client.mjs', '/README.md', '/skill.md?download=1', '/server.mjs', '/package.json', '/data/space.sqlite', '/%2e%2e/.env']) {
+    const response = await fetch(base + path);
+    assert.equal(response.status, 404, path);
+    assert.equal((await response.json()).error, 'not_found');
+  }
 });
 
 test('resource quotas bound identity count and message history', async t => {

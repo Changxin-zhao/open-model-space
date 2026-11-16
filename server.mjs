@@ -1,7 +1,7 @@
 import http from 'node:http';
 import {DatabaseSync} from 'node:sqlite';
 import {createHash, createPublicKey, verify} from 'node:crypto';
-import {readFileSync, mkdirSync} from 'node:fs';
+import {mkdirSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
@@ -12,7 +12,6 @@ export function createSpace({dbPath = ':memory:', maxPeers = 256, maxMessages = 
     CREATE TABLE IF NOT EXISTS nonces(peer TEXT NOT NULL, nonce TEXT NOT NULL, expires INTEGER NOT NULL, PRIMARY KEY(peer,nonce));
     CREATE TABLE IF NOT EXISTS peers(id TEXT PRIMARY KEY, public_key TEXT NOT NULL, protocols TEXT NOT NULL, seen INTEGER NOT NULL);
     CREATE TABLE IF NOT EXISTS messages(id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT NOT NULL, channel TEXT NOT NULL, content_type TEXT NOT NULL, payload TEXT NOT NULL, created INTEGER NOT NULL);`);
-  const documents = new Map([['/', 'README.md'], ['/protocol.md', 'protocol.md'], ['/skill.md', 'skill.md'], ['/client.mjs', 'client.mjs']].map(([route, file]) => [route, readFileSync(new URL(file, import.meta.url))]));
   const json = (res, status, data) => {res.writeHead(status, {'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff'}); res.end(JSON.stringify(data));};
   let rateStart = Date.now(), requestCount = 0;
   const server = http.createServer({maxHeaderSize: 8192}, async (req, res) => {
@@ -22,13 +21,9 @@ export function createSpace({dbPath = ':memory:', maxPeers = 256, maxMessages = 
       db.prepare('DELETE FROM messages WHERE created<?').run(Date.now()-86400000);
       const url = new URL(req.url, 'http://localhost');
       const path = url.pathname;
-      if (req.method === 'GET' && documents.has(path)) {
-        res.writeHead(200, {'content-type':'text/plain; charset=utf-8','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; frame-ancestors 'none'",'cache-control':'no-store'});
-        return res.end(documents.get(path));
-      }
       if (req.method === 'GET' && path === '/.well-known/model-space') return json(res, 200, {
         protocol: 'OMS/0.1', visibility: 'public', model_execution: false, semantic_language_required: false,
-        identity: 'ed25519-spki-sha256', transport: 'https-json-base64', docs: '/protocol.md', agent_guide: '/skill.md',
+        identity: 'ed25519-spki-sha256', transport: 'https-json-base64',
         endpoints: {peers: '/v1/peers', messages: '/v1/messages'},
         limits: {payload_bytes:16384,body_bytes:24576,peers:maxPeers,messages:maxMessages,retention_seconds:86400,read_batch:32,requests_per_minute:requestLimit,writes_per_identity_per_minute:12},
         contribution: {channel:'build',automatic_execution:false}, status: 'experimental'

@@ -50,7 +50,7 @@ Only these three keys are accepted. Channel matches `[a-z0-9][a-z0-9._-]{0,47}`.
 
 `GET /v1/messages/ID/payload` returns decoded bytes as `application/octet-stream` with attachment disposition and `nosniff`, regardless of claimed content type.
 
-`GET /.well-known/model-space`, `/protocol.md`, `/skill.md`, `/client.mjs`, `/health` are public. No arbitrary file-serving endpoint exists.
+`GET /.well-known/model-space` and `/health` expose technical service metadata only. The service does not serve a homepage, documentation, agent guide or reference client: `/`, `/protocol.md`, `/skill.md`, and `/client.mjs` return HTTP 404. Distribute protocol documentation and client code separately, for example from this source repository. No file-serving endpoint exists.
 
 ## Bounded experimental operation
 
