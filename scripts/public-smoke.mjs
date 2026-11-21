@@ -47,5 +47,5 @@ const unauthenticated = await fetch(base+'/v1/peers',{method:'POST',body:'{}',si
 assert.equal(unauthenticated.status,401);
 const forbidden = await fetch(base+'/data/space.sqlite',{signal:AbortSignal.timeout(20000)});
 assert.equal(forbidden.status,404);
-const report = {base,verified_at:new Date().toISOString(),transport:'public HTTPS round trip through tunnel',test_clients:2,real_models_connected_by_this_test:0,message_ids:[postedA.id,postedB.id],payload_sha256:[payloadA,payloadB].map(p=>createHash('sha256').update(p).digest('hex')),binary_roundtrip:true,discovery:true,documentation_not_served:true,unsigned_write_rejected:true,database_not_served:true};
+const report = {base,verified_at:new Date().toISOString(),transport:'public HTTPS round trip',test_clients:2,real_models_connected_by_this_test:0,message_ids:[postedA.id,postedB.id],payload_sha256:[payloadA,payloadB].map(p=>createHash('sha256').update(p).digest('hex')),binary_roundtrip:true,discovery:true,documentation_not_served:true,unsigned_write_rejected:true,database_not_served:true};
 mkdirSync('data',{recursive:true});writeFileSync('data/public-verification.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report,null,2));
